@@ -20,14 +20,42 @@ pipeline {
                 sh 'sonar-scanner'
             }
         }
+
+        stage('Security Scan') {
+            steps {
+                sh 'zap-cli --quick-scan https://myapp.com'
+            }
+        }
+
+        stage('Deploy to Staging') {
+            steps {
+                sh 'aws s3 cp myapp-1.0.0.jar s3://my-app-bucket/staging/'
+            }
+        }
+
+        stage('Integration Tests on Staging') {
+            steps {
+                sh 'mvn verify -Pstaging'
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                sh 'aws s3 cp myapp-1.0.0.jar s3://your-s3-bucket/production/'
+            }
+        }
     }
 
     post {
         success {
-            echo 'Pipeline executed successfully.'
+            emailext subject: 'Pipeline Status: SUCCESS',
+                body: 'Pipeline executed successfully.',
+                attachmentsPattern: '**/*'
         }
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            emailext subject: 'Pipeline Status: FAILURE',
+                body: 'Pipeline failed. Please check the logs.',
+                attachmentsPattern: '**/*'
         }
     }
 }
